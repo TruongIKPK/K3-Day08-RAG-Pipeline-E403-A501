@@ -310,6 +310,7 @@ def evaluate_with_ragas(
 ) -> dict:
     """Generate answers and calculate the four required RAGAS metrics."""
     from datasets import Dataset
+    # pyrefly: ignore [missing-import]
     from ragas import evaluate
     from ragas.metrics import (
         answer_relevancy,
