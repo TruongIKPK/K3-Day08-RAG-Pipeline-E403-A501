@@ -9,6 +9,12 @@ Yêu cầu:
     - Phải tương thích với embedding model và vector store ở Task 4
 """
 
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from .task4_chunking_indexing import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL
 
 _model = None
@@ -43,6 +49,23 @@ def _get_collection():
     return _collection
 
 
+def _get_query_embedding(query: str) -> list[float]:
+    """Tạo embedding cho query câu hỏi từ người dùng."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key and "text-embedding" in EMBEDDING_MODEL:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
+            return res.data[0].embedding
+        except Exception:
+            pass
+
+    model = _get_embedding_model()
+    if model:
+        return model.encode(query).tolist()
+    return []
+
 
 def semantic_search(query: str, top_k: int = 10) -> list[dict]:
     """
@@ -60,14 +83,15 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
         }
         Sorted by score descending.
     """
-    model = _get_embedding_model()
     collection = _get_collection()
-
-    if model is None or collection is None:
+    if collection is None:
         return []
 
     try:
-        query_vector = model.encode(query).tolist()
+        query_vector = _get_query_embedding(query)
+        if not query_vector:
+            return []
+
         results = collection.query(
             query_embeddings=[query_vector],
             n_results=top_k,
@@ -90,9 +114,7 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
     return []
 
 
-
 if __name__ == "__main__":
-    # Test
-    results = semantic_search("what is the tuition fee", top_k=5)
+    results = semantic_search("quần áo Shopee Mall", top_k=5)
     for r in results:
         print(f"[{r['score']:.3f}] {r['content'][:100]}...")
