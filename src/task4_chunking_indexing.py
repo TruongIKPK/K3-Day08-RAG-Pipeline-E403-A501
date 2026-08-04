@@ -40,13 +40,13 @@ CHROMA_DIR = Path(__file__).parent.parent / "chroma_db"
 # CONFIGURATION — Giải thích lựa chọn của bạn trong comment
 # =============================================================================
 
-# TODO: Chọn chunking strategy và giải thích vì sao
-CHUNK_SIZE = 500        # Vì sao chọn 500? ...
-CHUNK_OVERLAP = 50      # Vì sao chọn 50? ...
+# Cấu hình tối ưu bởi RAG Architect cho văn bản pháp lý & thương mại điện tử
+CHUNK_SIZE = 800        # 800 ký tự (~150-200 từ) vừa đủ giữ trọn 1-2 điều khoản/đoạn văn bản pháp lý mà không bị ngắt quãng ngữ nghĩa
+CHUNK_OVERLAP = 100      # Overlap 100 ký tự (~12.5%) giúp bảo toàn ngữ cảnh ở ranh giới cắt giữa các chunks
 CHUNKING_METHOD = "recursive"  # "recursive" | "markdown_header" | "semantic"
 
-# TODO: Chọn embedding model và giải thích
-EMBEDDING_MODEL = "BAAI/bge-m3"  # Vì sao? Multilingual, tốt cho tiếng Việt lẫn tiếng Anh
+# Embedding Model BAAI/bge-m3
+EMBEDDING_MODEL = "BAAI/bge-m3"  # Multilingual sOTA, biểu diễn tiếng Việt cực kỳ vượt trội, hỗ trợ 8192 tokens window
 EMBEDDING_DIM = 1024
 
 # TODO: Chọn vector store
