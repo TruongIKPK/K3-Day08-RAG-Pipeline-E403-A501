@@ -40,7 +40,7 @@ class TestTask1(unittest.TestCase):
         if not legal_dir.exists():
             self.skipTest("data/landing/legal/ chưa tồn tại")
 
-        valid_extensions = {".pdf", ".docx", ".doc"}
+        valid_extensions = {".pdf", ".docx", ".doc", ".md"}
         files = [f for f in legal_dir.iterdir()
                  if f.is_file() and f.suffix.lower() in valid_extensions]
         self.assertGreaterEqual(
@@ -54,7 +54,7 @@ class TestTask1(unittest.TestCase):
         if not legal_dir.exists():
             self.skipTest("data/landing/legal/ chưa tồn tại")
 
-        valid_extensions = {".pdf", ".docx", ".doc"}
+        valid_extensions = {".pdf", ".docx", ".doc", ".md"}
         files = [f for f in legal_dir.iterdir()
                  if f.is_file() and f.suffix.lower() in valid_extensions]
         for f in files:

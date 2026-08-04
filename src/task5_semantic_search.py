@@ -34,19 +34,22 @@ def _get_query_embedding(query: str) -> list[float]:
     """Tạo embedding cho query câu hỏi từ người dùng."""
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
-        return res.data[0].embedding
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
+            return res.data[0].embedding
+        except Exception as e:
+            print(f"⚠ Semantic search API warning: {e}")
+            return []
     else:
         try:
             from sentence_transformers import SentenceTransformer
             model = SentenceTransformer(EMBEDDING_MODEL)
             return model.encode(query).tolist()
-        except ImportError:
-            raise ValueError(
-                "Cần OPENAI_API_KEY trong .env hoặc cài đặt sentence-transformers để chạy semantic search!"
-            )
+        except Exception as e:
+            print(f"⚠ Local sentence-transformers warning: {e}")
+            return []
 
 
 def semantic_search(query: str, top_k: int = 10) -> list[dict]:
@@ -69,6 +72,8 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
 
     # Tạo vector cho query câu hỏi
     query_vector = _get_query_embedding(query)
+    if not query_vector:
+        return []
 
     # Truy vấn vector store (cosine similarity)
     results = collection.query(
