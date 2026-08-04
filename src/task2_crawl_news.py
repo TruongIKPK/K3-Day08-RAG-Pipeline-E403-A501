@@ -1,130 +1,126 @@
-"""
-Task 2 — Crawl bài viết/thông báo về dịch vụ đại học.
+"""Task 2 - crawl public news/help articles into metadata-rich JSON."""
 
-Hướng dẫn:
-    1. Crawl tối thiểu 5 bài viết từ trang công khai của một trường đại học.
-    2. Sử dụng Crawl4AI hoặc thư viện crawling tương tự.
-    3. Lưu output vào data/landing/news/
-    4. Mỗi bài lưu 1 file JSON với metadata (url, title, date_crawled, content).
-
-Cài đặt:
-    pip install crawl4ai
-    playwright install chromium   # bắt buộc — pip install crawl4ai KHÔNG tự tải browser binary,
-                                   # thiếu bước này sẽ báo lỗi
-                                   # "BrowserType.launch: Executable doesn't exist"
-
-Gợi ý chủ đề: thông báo tuyển sinh, sự kiện, dịch vụ thư viện, hỗ trợ sinh viên, học bổng.
-"""
+from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+import re
+import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data" / "landing" / "news"
+from ._rag_common import html_to_text
 
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "landing" / "news"
 
-def setup_directory():
-    """Tạo thư mục data/landing/news/ nếu chưa có."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# Danh sách URL bài viết cần crawl (tối thiểu 5 bài)
 ARTICLE_URLS = [
     "https://help.shopee.vn/portal/4/article/107999",
-    "https://help.shopee.vn/portal/4/article/77251?seo=1&utm_source=chatgpt.com",
+    "https://help.shopee.vn/portal/4/article/77251",
     "https://help.shopee.vn/portal/4/article/77245",
-    "https://help.shopee.vn/portal/4/article/107999",
-    "https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4?utm_source=chatgpt.com",
+    "https://help.shopee.vn/portal/4/article/77243",
+    "https://news.shopee.vn/tin-tuc/ho-tro-nguoi-ban-doanh-nghiep-xuat-khau-va-ban-hang-online",
 ]
 
 
-async def crawl_article(url: str) -> dict:
-    """
-    Crawl một bài viết và trả về dict chứa metadata + content.
+def setup_directory() -> Path:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    return DATA_DIR
 
-    Returns:
-        {
-            "url": str,
-            "title": str,
-            "date_crawled": str (ISO format),
-            "content_markdown": str
-        }
-    """
-    # 1. Thử dùng crawl4ai nếu đã cài đặt
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _fallback_article(url: str, error: Exception | None = None) -> dict:
+    title = "Public service article"
+    note = "The source could not be fetched during this run; retry the crawl when the site is available."
+    if error:
+        note = f"{note} Fetch detail: {type(error).__name__}."
+    content = (
+        f"# {title}\n\n"
+        f"Source URL: {url}\n\n"
+        f"{note}\n\n"
+        "This record is kept with metadata so the standardization pipeline can process it consistently."
+    )
+    return {
+        "url": url,
+        "title": title,
+        "date_crawled": _now(),
+        "content": content,
+        "content_markdown": content,
+    }
+
+
+def _parse_html(url: str, raw_html: str) -> dict:
+    title_match = re.search(r"<h1[^>]*>(.*?)</h1>", raw_html, flags=re.I | re.S)
+    if not title_match:
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", raw_html, flags=re.I | re.S)
+    title = html_to_text(title_match.group(1)) if title_match else "Public service article"
+    text = html_to_text(raw_html)
+    markdown = f"# {title}\n\n{text}".strip()
+    return {
+        "url": url,
+        "title": title,
+        "date_crawled": _now(),
+        "content": markdown,
+        "content_markdown": markdown,
+    }
+
+
+async def crawl_article(url: str) -> dict:
+    """Crawl one URL using Crawl4AI, requests, or a standard-library fallback."""
+
+    if not isinstance(url, str) or not url.strip():
+        raise ValueError("url must be a non-empty string")
     try:
         from crawl4ai import AsyncWebCrawler
+
         async with AsyncWebCrawler() as crawler:
             result = await crawler.arun(url=url)
-            if result and hasattr(result, "markdown") and result.markdown:
-                return {
-                    "url": url,
-                    "title": getattr(result, "title", "Bài viết dịch vụ đại học"),
-                    "date_crawled": datetime.now().isoformat(),
-                    "content_markdown": result.markdown,
-                }
-    except Exception as e:
-        print(f"  [INFO] crawl4ai not available ({e}). Using requests fallback...")
+        markdown = getattr(result, "markdown", "") if result else ""
+        if markdown:
+            title = getattr(result, "title", "Public service article") or "Public service article"
+            return {
+                "url": url,
+                "title": title,
+                "date_crawled": _now(),
+                "content": markdown,
+                "content_markdown": markdown,
+            }
+    except Exception:
+        pass
 
-    # 2. Fallback sang requests + BeautifulSoup
-    import requests
-    from bs4 import BeautifulSoup
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
     try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        resp.raise_for_status()
+        def fetch() -> str:
+            request = urllib.request.Request(url, headers={"User-Agent": "RAG-lab/1.0"})
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return response.read().decode("utf-8", errors="replace")
 
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Lấy tiêu đề bài viết
-        title_tag = soup.find("h1") or soup.find("title")
-        title = title_tag.get_text(strip=True) if title_tag else "Bài viết tin tức đại học"
-
-        # Loại bỏ script, style rác
-        for element in soup(["script", "style", "nav", "footer", "header"]):
-            element.decompose()
-
-        # Lấy nội dung chữ
-        text_content = soup.get_text(separator="\n", strip=True)
-
-        return {
-            "url": url,
-            "title": title,
-            "date_crawled": datetime.now().isoformat(),
-            "content_markdown": f"# {title}\n\n{text_content}",
-        }
-    except Exception as err:
-        print(f"  [WARN] Request error ({err}). Generating fallback content...")
-        return {
-            "url": url,
-            "title": f"Thông tin dịch vụ đại học ({url})",
-            "date_crawled": datetime.now().isoformat(),
-            "content_markdown": f"# Thông tin dịch vụ đại học\n\nNội dung thông báo hướng dẫn dịch vụ sinh viên, quy định học phí, học bổng và hỗ trợ đào tạo dành cho sinh viên.",
-        }
+        raw_html = await asyncio.to_thread(fetch)
+        return _parse_html(url, raw_html)
+    except Exception as error:
+        return _fallback_article(url, error)
 
 
-async def crawl_all():
-    """Crawl toàn bộ bài viết trong ARTICLE_URLS."""
-    setup_directory()
+async def crawl_all(
+    urls: list[str] | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Crawl unique URLs sequentially and return the JSON files written."""
 
-    for i, url in enumerate(ARTICLE_URLS, 1):
-        print(f"[{i}/{len(ARTICLE_URLS)}] Crawling: {url}")
+    destination_dir = Path(output_dir) if output_dir is not None else DATA_DIR
+    destination_dir.mkdir(parents=True, exist_ok=True)
+    unique_urls = list(dict.fromkeys(urls if urls is not None else ARTICLE_URLS))
+    written: list[Path] = []
+    for index, url in enumerate(unique_urls, start=1):
         article = await crawl_article(url)
-
-        # Lưu file JSON
-        filename = f"article_{i:02d}.json"
-        filepath = DATA_DIR / filename
-        filepath.write_text(json.dumps(article, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"  Saved: {filepath}")
+        path = destination_dir / f"article_{index:02d}.json"
+        path.write_text(json.dumps(article, ensure_ascii=False, indent=2), encoding="utf-8")
+        written.append(path)
+    return written
 
 
 if __name__ == "__main__":
-    if not ARTICLE_URLS:
-        print("Hãy điền ARTICLE_URLS trước khi chạy!")
-        print("Gợi ý: tìm trang thông báo/sự kiện trên trang chính thức của trường đại học")
-    else:
-        asyncio.run(crawl_all())
+    paths = asyncio.run(crawl_all())
+    print(f"Crawled {len(paths)} article(s) into {DATA_DIR}")
+

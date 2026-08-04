@@ -1,54 +1,77 @@
-"""
-Task 1 — Thu thập văn bản chính sách/quy định dịch vụ đại học.
+"""Task 1 - collect and validate public legal/policy documents."""
 
-Hướng dẫn:
-    1. Tìm tối thiểu 3 văn bản chính sách (PDF/DOCX) từ trang công khai của một trường đại học.
-    2. Tải về và lưu vào data/landing/legal/
-    3. Đặt tên file rõ ràng, không dấu, mô tả đúng nội dung.
+from __future__ import annotations
 
-Gợi ý nguồn (ví dụ trang công khai RMIT Vietnam — rmit.edu.vn):
-    - https://www.rmit.edu.vn/study-at-rmit/tuition-fees
-    - https://www.rmit.edu.vn/study-at-rmit/scholarships/...
-    - https://www.rmit.edu.vn/students/my-studies/fees-and-payments
-
-Gợi ý văn bản (chủ đề dịch vụ đại học):
-    - Học phí & phương thức thanh toán (Tuition Fees)
-    - Chính sách học bổng (Scholarship eligibility)
-    - Quy định ký túc xá / hỗ trợ chỗ ở (Accommodation Services)
-    - Hướng dẫn đăng ký học phần qua cổng thông tin sinh viên (Course Registration)
-
-Lưu ý: một số trang trường (vd VinUni, Fulbright) chặn bot crawler mặc định (HTTP 403) —
-không phải lỗi của bạn, đó là cấu hình WAF/Cloudflare phía server. Đổi sang trang khác
-thay vì cố vượt qua, và chỉ dùng nguồn công khai/được phép chia sẻ.
-"""
-
+import urllib.request
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data" / "landing" / "legal"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "landing" / "legal"
+SUPPORTED_EXTENSIONS = {".pdf", ".doc", ".docx", ".md", ".txt"}
 
 
-def setup_directory():
-    """Tạo thư mục data/landing/legal/ nếu chưa có."""
+def setup_directory() -> Path:
+    """Create and return the legal landing directory."""
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Thư mục đã sẵn sàng: {DATA_DIR}")
+    return DATA_DIR
 
 
-# TODO: Tải file PDF/DOCX về DATA_DIR
-# Có thể tải thủ công hoặc viết script download nếu có direct link.
-#
-# Ví dụ nếu có direct link:
-#
-# import requests
-#
-# def download_file(url: str, filename: str):
-#     response = requests.get(url)
-#     filepath = DATA_DIR / filename
-#     filepath.write_bytes(response.content)
-#     print(f"✓ Đã tải: {filepath}")
-#
-# Nếu trang là HTML thuần (không phải PDF sẵn), có thể convert nội dung text
-# thành PDF đơn giản bằng thư viện fpdf2 (đã có trong requirements.txt).
+def download_file(url: str, filename: str, timeout: int = 30) -> Path:
+    """Download one public document with a path-traversal-safe filename."""
+
+    if not isinstance(url, str) or not url.strip():
+        raise ValueError("url must be a non-empty string")
+    if not isinstance(filename, str) or not filename.strip():
+        raise ValueError("filename must be a non-empty string")
+    safe_name = Path(filename).name
+    if safe_name != filename or Path(safe_name).suffix.casefold() not in SUPPORTED_EXTENSIONS:
+        raise ValueError("filename must be a simple supported document name")
+    destination = setup_directory() / safe_name
+    try:
+        from requests import get
+
+        response = get(url, timeout=timeout, headers={"User-Agent": "RAG-lab/1.0"})
+        response.raise_for_status()
+        payload = response.content
+    except ImportError:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            payload = response.read()
+    destination.write_bytes(payload)
+    return destination
+
+
+def collect_legal_docs(sources: list[dict] | None = None) -> list[Path]:
+    """Download a supplied list of ``{"url", "filename"}`` sources.
+
+    Existing files are retained and returned, making the function safe to run
+    repeatedly after a network interruption.
+    """
+
+    setup_directory()
+    if not sources:
+        return sorted(
+            path for path in DATA_DIR.iterdir() if path.is_file() and path.suffix.casefold() in SUPPORTED_EXTENSIONS
+        )
+    output: list[Path] = []
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        filename = source.get("filename")
+        url = source.get("url")
+        if not isinstance(filename, str) or not isinstance(url, str):
+            continue
+        destination = DATA_DIR / Path(filename).name
+        if destination.exists() and destination.stat().st_size > 0:
+            output.append(destination)
+            continue
+        try:
+            output.append(download_file(url, filename))
+        except Exception:
+            # A single blocked public source should not discard collected data.
+            continue
+    return output
 
 
 if __name__ == "__main__":
-    setup_directory()
+    print(f"Legal landing directory ready: {setup_directory()}")
+

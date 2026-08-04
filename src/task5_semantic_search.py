@@ -1,147 +1,165 @@
-"""
-Task 5 — Semantic Search Module.
+"""Task 5 - dense/semantic retrieval with an offline-safe fallback."""
 
-Viết module tìm kiếm ngữ nghĩa (dense retrieval) trên vector store.
+from __future__ import annotations
 
-Yêu cầu:
-    - Input: query string + top_k
-    - Output: danh sách chunks có score, sorted descending
-    - Phải tương thích với embedding model và vector store ở Task 4
-"""
-
+import json
 import os
-from pathlib import Path
+
 from dotenv import load_dotenv
+
+from ._rag_common import cosine_similarity, hashed_embedding, safe_top_k
+from .task4_chunking_indexing import (
+    CHROMA_DIR,
+    COLLECTION_NAME,
+    EMBEDDING_DIM,
+    EMBEDDING_MODEL,
+    LOCAL_INDEX_FILE,
+    chunk_documents,
+    load_documents,
+)
 
 load_dotenv()
 
-from .task4_chunking_indexing import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL
-
 _model = None
 _collection = None
+_local_chunks: list[dict] | None = None
 
 
 def _get_embedding_model():
-    """Load (và cache) embedding model — cùng model dùng ở Task 4."""
+    """Load a local model only when explicitly enabled by the user."""
+
     global _model
-    if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer(EMBEDDING_MODEL)
-        except Exception as e:
-            print(f"  [WARN] Cannot load embedding model ({e})")
-            return None
+    if _model is not None:
+        return _model
+    if os.getenv("RAG_USE_LOCAL_MODEL", "0").casefold() not in {"1", "true", "yes"}:
+        return None
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        _model = SentenceTransformer(EMBEDDING_MODEL)
+    except Exception:
+        _model = None
     return _model
 
 
 def _get_collection():
-    """Kết nối (và cache) tới ChromaDB collection đã index ở Task 4."""
+    """Return the Task 4 Chroma collection when it is available."""
+
     global _collection
-    if _collection is None:
-        try:
-            import chromadb
-            if CHROMA_DIR.exists():
-                client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-                _collection = client.get_collection(name=COLLECTION_NAME)
-        except Exception as e:
-            print(f"  [WARN] Cannot load ChromaDB collection ({e})")
+    if _collection is not None:
+        return _collection
+    try:
+        import chromadb
+
+        if not CHROMA_DIR.exists():
             return None
+        client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        _collection = client.get_collection(name=COLLECTION_NAME)
+    except Exception:
+        _collection = None
     return _collection
 
 
 def _get_query_embedding(query: str) -> list[float]:
-    """Tạo embedding cho query câu hỏi từ người dùng."""
+    """Use the same configured model as indexing, else deterministic hashing."""
+
     api_key = os.getenv("OPENAI_API_KEY")
-<<<<<<< HEAD
-    if api_key and "text-embedding" in EMBEDDING_MODEL:
+    if api_key and "text-embedding" in EMBEDDING_MODEL.lower():
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
-            return res.data[0].embedding
+
+            response = OpenAI(api_key=api_key).embeddings.create(
+                input=[query], model=EMBEDDING_MODEL
+            )
+            return list(response.data[0].embedding)
         except Exception:
             pass
 
     model = _get_embedding_model()
-    if model:
-        return model.encode(query).tolist()
-    return []
-=======
-    if api_key:
+    if model is not None:
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
-            return res.data[0].embedding
-        except Exception as e:
-            print(f"⚠ Semantic search API warning: {e}")
-            return []
-    else:
+            value = model.encode(query)
+            return value.tolist() if hasattr(value, "tolist") else list(value)
+        except Exception:
+            pass
+    return hashed_embedding(query, EMBEDDING_DIM)
+
+
+def _load_local_chunks() -> list[dict]:
+    global _local_chunks
+    if _local_chunks is not None:
+        return _local_chunks
+
+    if LOCAL_INDEX_FILE.exists():
         try:
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer(EMBEDDING_MODEL)
-            return model.encode(query).tolist()
-        except Exception as e:
-            print(f"⚠ Local sentence-transformers warning: {e}")
-            return []
->>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
+            payload = json.loads(LOCAL_INDEX_FILE.read_text(encoding="utf-8"))
+            if isinstance(payload, list):
+                _local_chunks = [item for item in payload if isinstance(item, dict) and item.get("content")]
+        except (OSError, ValueError, TypeError):
+            _local_chunks = None
+
+    if _local_chunks is None:
+        _local_chunks = chunk_documents(load_documents())
+    return _local_chunks
+
+
+def _semantic_search_local(query: str, top_k: int) -> list[dict]:
+    query_vector = _get_query_embedding(query)
+    results: list[dict] = []
+    for index, chunk in enumerate(_load_local_chunks()):
+        embedding = chunk.get("embedding")
+        if not isinstance(embedding, list):
+            embedding = hashed_embedding(chunk.get("content", ""), len(query_vector) or EMBEDDING_DIM)
+        score = max(0.0, cosine_similarity(query_vector, embedding))
+        item = {
+            "content": str(chunk.get("content", "")),
+            "score": round(score, 6),
+            "metadata": dict(chunk.get("metadata", {})),
+        }
+        item["metadata"].setdefault("chunk_index", index)
+        results.append(item)
+    results.sort(key=lambda item: (-item["score"], item["metadata"].get("source", ""), item["metadata"].get("chunk_index", 0)))
+    return results[:top_k]
 
 
 def semantic_search(query: str, top_k: int = 10) -> list[dict]:
-    """
-    Tìm kiếm ngữ nghĩa sử dụng vector similarity.
+    """Return chunks ranked by cosine similarity, highest score first."""
 
-    Args:
-        query: Câu truy vấn
-        top_k: Số lượng kết quả tối đa
+    if not isinstance(query, str):
+        raise TypeError("query must be a string")
+    limit = safe_top_k(top_k)
+    if not query.strip() or limit == 0:
+        return []
 
-    Returns:
-        List of {
-            'content': str,      # Nội dung chunk
-            'score': float,      # Cosine similarity score
-            'metadata': dict     # source, doc_type, chunk_index
-        }
-        Sorted by score descending.
-    """
     collection = _get_collection()
-    if collection is None:
-        return []
+    if collection is not None:
+        try:
+            query_vector = _get_query_embedding(query)
+            response = collection.query(
+                query_embeddings=[query_vector],
+                n_results=limit,
+                include=["documents", "metadatas", "distances"],
+            )
+            documents = (response.get("documents") or [[]])[0]
+            metadatas = (response.get("metadatas") or [[]])[0]
+            distances = (response.get("distances") or [[]])[0]
+            results = []
+            for document, metadata, distance in zip(documents, metadatas, distances):
+                score = max(0.0, 1.0 - float(distance))
+                results.append(
+                    {"content": document, "score": round(score, 6), "metadata": metadata or {}}
+                )
+            results.sort(key=lambda item: item["score"], reverse=True)
+            if results:
+                return results[:limit]
+        except Exception:
+            # A stale/incompatible Chroma index should not take down the assistant.
+            pass
 
-<<<<<<< HEAD
-    try:
-        query_vector = _get_query_embedding(query)
-        if not query_vector:
-            return []
-=======
-    # Tạo vector cho query câu hỏi
-    query_vector = _get_query_embedding(query)
-    if not query_vector:
-        return []
->>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
-
-        results = collection.query(
-            query_embeddings=[query_vector],
-            n_results=top_k,
-            include=["documents", "metadatas", "distances"],
-        )
-
-        output = []
-        if results and results.get("documents") and results["documents"][0]:
-            for doc, meta, dist in zip(
-                results["documents"][0], results["metadatas"][0], results["distances"][0]
-            ):
-                score = max(0.0, 1.0 - dist)  # cosine distance → similarity
-                output.append({"content": doc, "score": round(score, 4), "metadata": meta})
-
-        output.sort(key=lambda x: x["score"], reverse=True)
-        return output[:top_k]
-    except Exception as e:
-        print(f"  [WARN] Semantic search error: {e}")
-
-    return []
+    return _semantic_search_local(query, limit)
 
 
 if __name__ == "__main__":
-    results = semantic_search("quần áo Shopee Mall", top_k=5)
-    for r in results:
-        print(f"[{r['score']:.3f}] {r['content'][:100]}...")
+    for result in semantic_search("shipping policy", top_k=5):
+        print(f"[{result['score']:.3f}] {result['metadata'].get('source')}")
+

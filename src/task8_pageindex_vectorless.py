@@ -1,139 +1,142 @@
-"""
-Task 8 — PageIndex Vectorless RAG.
+"""Task 8 - structural/vectorless retrieval with an optional PageIndex API."""
 
-PageIndex cho phép RAG không dùng vector store — sử dụng
-structural understanding của document.
-"""
+from __future__ import annotations
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
+
+from ._rag_common import safe_top_k, structural_sections, tokenize
+from .task4_chunking_indexing import load_documents
 
 load_dotenv()
 
+STANDARDIZED_DIR = Path(__file__).resolve().parent.parent / "data" / "standardized"
 PAGEINDEX_API_KEY = os.getenv("PAGEINDEX_API_KEY", "")
-STANDARDIZED_DIR = Path(__file__).parent.parent / "data" / "standardized"
 
 
-def upload_documents():
+def _api_value(value, name: str, default=None):
+    if isinstance(value, dict):
+        return value.get(name, default)
+    return getattr(value, name, default)
+
+
+def upload_documents() -> list[str]:
+    """Upload standardized files when PageIndex is configured.
+
+    Returning an empty list is a valid offline result; the local structural
+    index remains available for Task 9 fallback.
     """
-    Upload toàn bộ markdown documents lên PageIndex.
-    """
-    if not PAGEINDEX_API_KEY:
-<<<<<<< HEAD
-        print("  [WARN] PAGEINDEX_API_KEY missing. Skipping PageIndex upload.")
-        return
-    try:
-        from pageindex.client import PageIndexClient
-        client = PageIndexClient(api_key=PAGEINDEX_API_KEY)
-        for md_file in STANDARDIZED_DIR.rglob("*.md"):
-            print(f"  ✓ Processed: {md_file.name}")
-    except Exception as e:
-        print(f"  [WARN] PageIndex upload error: {e}")
-=======
-        print("⚠ Hãy set PAGEINDEX_API_KEY trong file .env")
+
+    api_key = os.getenv("PAGEINDEX_API_KEY", PAGEINDEX_API_KEY)
+    if not api_key or not STANDARDIZED_DIR.is_dir():
         return []
-
     try:
         from pageindex.client import PageIndexClient
-        client = PageIndexClient(api_key=PAGEINDEX_API_KEY)
-        uploaded = []
-        for md_file in STANDARDIZED_DIR.rglob("*.md"):
-            resp = client.submit_document(str(md_file))
-            doc_id = resp.get("doc_id") or resp.get("id")
-            uploaded.append(doc_id)
+
+        client = PageIndexClient(api_key=api_key)
+        uploaded: list[str] = []
+        for path in sorted(STANDARDIZED_DIR.rglob("*.md"), key=lambda item: item.as_posix().casefold()):
+            response = client.submit_document(str(path))
+            identifier = _api_value(response, "doc_id") or _api_value(response, "id")
+            uploaded.append(str(identifier or path))
         return uploaded
-    except Exception as e:
-        print(f"Lỗi khi upload PageIndex: {e}")
+    except Exception:
         return []
->>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
+
+
+def _pageindex_api_search(query: str, top_k: int) -> list[dict]:
+    api_key = os.getenv("PAGEINDEX_API_KEY", PAGEINDEX_API_KEY)
+    if not api_key:
+        return []
+    try:
+        from pageindex.client import PageIndexClient
+
+        client = PageIndexClient(api_key=api_key)
+        response = client.submit_query(query=query)
+        retrieval_id = _api_value(response, "retrieval_id") or _api_value(response, "id")
+        if not retrieval_id:
+            return []
+        retrieval = client.get_retrieval(retrieval_id)
+        output: list[dict] = []
+        nodes = _api_value(retrieval, "retrieved_nodes", []) or []
+        for node in nodes:
+            groups = _api_value(node, "relevant_contents", []) or []
+            for group in groups:
+                items = group if isinstance(group, list) else [group]
+                for item in items:
+                    content = _api_value(item, "relevant_content", "")
+                    if not content:
+                        continue
+                    output.append(
+                        {
+                            "content": str(content),
+                            "score": 0.6,
+                            "metadata": {"section": _api_value(item, "section_title", "")},
+                            "source": "pageindex",
+                        }
+                    )
+                    if len(output) >= top_k:
+                        return output
+        return output[:top_k]
+    except Exception:
+        return []
 
 
 def pageindex_search(query: str, top_k: int = 5) -> list[dict]:
-    """
-    Vectorless retrieval sử dụng PageIndex làm fallback.
+    """Retrieve structurally relevant sections and mark every result as PageIndex."""
 
-    Args:
-        query: Câu truy vấn
-        top_k: Số lượng kết quả tối đa
+    if not isinstance(query, str):
+        raise TypeError("query must be a string")
+    limit = safe_top_k(top_k)
+    if limit == 0 or not query.strip():
+        return []
 
-    Returns:
-        List of {
-            'content': str,
-            'score': float,
-            'metadata': dict,
-            'source': 'pageindex'   # Đánh dấu nguồn retrieval
-        }
-    """
-<<<<<<< HEAD
-=======
-    results = []
+    api_results = _pageindex_api_search(query, limit)
+    if api_results:
+        return api_results[:limit]
 
->>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
-    if PAGEINDEX_API_KEY:
-        try:
-            from pageindex.client import PageIndexClient
-            client = PageIndexClient(api_key=PAGEINDEX_API_KEY)
-            resp = client.submit_query(query=query)
-<<<<<<< HEAD
-            if resp:
-                results = []
-                retrieval_id = resp.get("retrieval_id") or resp.get("id")
-                if retrieval_id:
-                    retrieval = client.get_retrieval(retrieval_id)
-                    for node in retrieval.get("retrieved_nodes", []):
-                        for group in node.get("relevant_contents", []):
-                            for item in group:
-                                results.append({
-                                    "content": item.get("relevant_content", ""),
-                                    "score": 0.6,
-                                    "metadata": {"section": item.get("section_title")},
-                                    "source": "pageindex",
-                                })
-                if results:
-                    return results[:top_k]
-        except Exception as e:
-            print(f"  [INFO] PageIndex API error ({e}). Using structural fallback...")
+    query_tokens = set(tokenize(query))
+    candidates: list[tuple[float, int, dict]] = []
+    serial = 0
+    for document in load_documents():
+        source = document.get("metadata", {}).get("source", "unknown")
+        doc_type = document.get("metadata", {}).get("type", "document")
+        for section in structural_sections(document.get("content", ""), source, doc_type):
+            serial += 1
+            section_tokens = set(tokenize(section["content"]))
+            overlap = len(query_tokens & section_tokens) / len(query_tokens) if query_tokens else 0.0
+            title = section["metadata"].get("section", "").casefold()
+            title_bonus = 0.2 if any(token in title for token in query_tokens) else 0.0
+            candidates.append((overlap + title_bonus, serial, section))
 
-    return [
-        {
-            "content": f"[PageIndex Structural Fallback] Tra cứu cấu trúc mục lục tổng hợp quy chế/chính sách cho truy vấn: '{query}'.",
-            "score": 0.5,
-            "metadata": {"section": "Cấu trúc quy định tổng hợp"},
+    candidates.sort(key=lambda row: (-row[0], row[2]["metadata"].get("source", ""), row[1]))
+    results: list[dict] = []
+    for score, _, section in candidates[:limit]:
+        item = {
+            "content": section["content"],
+            "score": round(max(0.05, min(1.0, score)), 6),
+            "metadata": dict(section["metadata"]),
             "source": "pageindex",
         }
-    ][:top_k]
+        if score == 0:
+            item["metadata"]["fallback"] = True
+        results.append(item)
 
-=======
-            retrieval_id = resp.get("retrieval_id") or resp.get("id")
-            retrieval = client.get_retrieval(retrieval_id)
-
-            for node in retrieval.get("retrieved_nodes", [])[:top_k]:
-                for group in node.get("relevant_contents", []):
-                    for item in group:
-                        results.append({
-                            "content": item.get("relevant_content", ""),
-                            "score": 0.5,
-                            "metadata": {"section": item.get("section_title", "")},
-                            "source": "pageindex",
-                        })
-        except Exception as e:
-            print(f"PageIndex API query error: {e}")
-
-    # Fallback khi chưa cấu hình API Key hoặc query không có trong index
-    if not results:
-        results.append({
-            "content": f"[PageIndex Fallback] Không tìm thấy thông tin phù hợp cho câu hỏi: '{query}'. Vui lòng thử câu hỏi khác.",
-            "score": 0.1,
-            "metadata": {"type": "fallback"},
-            "source": "pageindex"
-        })
-
-    return results[:top_k]
->>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
+    if results:
+        return results
+    return [
+        {
+            "content": "No structural evidence is available for this query.",
+            "score": 0.05,
+            "metadata": {"type": "fallback", "section": "none"},
+            "source": "pageindex",
+        }
+    ]
 
 
 if __name__ == "__main__":
-    results = pageindex_search("quần áo Shopee Mall", top_k=2)
-    for r in results:
-        print(f"[{r['source']}] {r['content']}")
+    for result in pageindex_search("shipping policy", top_k=2):
+        print(f"[{result['source']}] {result['metadata'].get('source', 'n/a')}")
+
