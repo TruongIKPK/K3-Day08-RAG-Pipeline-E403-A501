@@ -77,41 +77,8 @@ def retrieve(
             'source': str  # 'hybrid' hoặc 'pageindex'
         }
     """
-def retrieve(
-    query: str,
-    top_k: int = DEFAULT_TOP_K,
-    score_threshold: float = SCORE_THRESHOLD,
-    use_reranking: bool = True,
-) -> list[dict]:
-    """
-    Retrieval pipeline hoàn chỉnh với fallback logic.
-
-    Pipeline:
-        Query
-          ├→ Semantic Search → dense_results (giữ điểm cosine gốc)
-          ├→ Lexical Search  → sparse_results
-          │
-          ├→ Merge (RRF) → merged_results
-          ├→ Rerank → reranked_results
-          │
-          └→ If dense_results[0]["score"] < threshold:
-                └→ PageIndex Vectorless → fallback_results
-
-    Args:
-        query: Câu truy vấn
-        top_k: Số lượng kết quả cuối cùng
-        score_threshold: Ngưỡng điểm cosine gốc tối thiểu (KHÔNG phải điểm RRF)
-        use_reranking: Có áp dụng reranking hay không
-
-    Returns:
-        List of {
-            'content': str,
-            'score': float,
-            'metadata': dict,
-            'source': str  # 'hybrid' hoặc 'pageindex'
-        }
-    """
     dense_results = []
+
     sparse_results = []
     try:
         dense_results = semantic_search(query, top_k=top_k * 2)
