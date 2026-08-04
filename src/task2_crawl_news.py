@@ -31,7 +31,7 @@ def setup_directory():
 
 # Danh sách URL bài viết cần crawl (tối thiểu 5 bài)
 ARTICLE_URLS = [
-
+    "https://help.shopee.vn/portal/4/article/107999"
 ]
 
 
