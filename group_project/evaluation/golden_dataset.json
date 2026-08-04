@@ -1,17 +1,102 @@
 [
   {
-    "question": "Học phí hàng năm của chương trình Business tại RMIT Vietnam là bao nhiêu?",
-    "expected_answer": "Khoảng 375.840.000 VND mỗi năm (tùy chương trình cụ thể).",
-    "expected_context": "Trang Tuition Fees, mục Undergraduate Programs"
+    "question": "Theo Điều khoản dịch vụ Shopee, hợp đồng mua bán thực tế được giao kết giữa những bên nào và Shopee giữ vai trò gì?",
+    "expected_answer": "Hợp đồng mua bán thực tế được giao kết trực tiếp giữa Người Mua và Người Bán; các bên chịu trách nhiệm đối với hợp đồng, việc đăng bán, bảo hành và các nghĩa vụ liên quan. Shopee cung cấp sàn kết nối và là bên trung gian quản lý tình trạng giao dịch, hàng hóa và vận chuyển trong phạm vi dịch vụ, không phải bên bán trong hợp đồng đó.",
+    "expected_context": "Điều khoản dịch vụ Shopee, mục 1.2: dịch vụ sàn kết nối Người Mua và Người Bán; hợp đồng mua bán thực tế trực tiếp giữa hai bên; Shopee là bên trung gian. Nguồn: https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4"
   },
   {
-    "question": "Học phí được thanh toán theo hình thức nào?",
-    "expected_answer": "Thanh toán theo từng học kỳ, tính theo từng môn học đã đăng ký.",
-    "expected_context": "Trang Tuition Fees, mục Payment Structure"
+    "question": "Người bán trên Shopee phải bảo đảm những thông tin nào trong danh mục sản phẩm luôn chính xác và đầy đủ?",
+    "expected_answer": "Người bán phải quản lý và cập nhật chính xác, đầy đủ các thông tin về giá, chi tiết sản phẩm, số lượng tồn kho và điều khoản, điều kiện bán hàng; không được đăng thông tin sai hoặc gây nhầm lẫn.",
+    "expected_context": "Điều khoản dịch vụ Shopee, mục 15.1 về trách nhiệm của Người Bán. Nguồn: https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4"
   },
   {
-    "question": "Trường có cung cấp ký túc xá trong khuôn viên không?",
-    "expected_answer": "Không — trường không cung cấp chỗ ở trong khuôn viên, nhưng có đội ngũ hỗ trợ sinh viên tìm chỗ ở gần trường.",
-    "expected_context": "Trang Accommodation Services"
+    "question": "Theo Điều khoản dịch vụ Shopee, giá sản phẩm đăng bán nên bao gồm những khoản nào và người bán có được thu thêm khoản riêng không?",
+    "expected_answer": "Giá sản phẩm nên bao gồm toàn bộ số tiền người mua phải thanh toán, kể cả thuế và phí. Người bán không được yêu cầu người mua trả thêm hoặc trả riêng một khoản khác ngoài giá đã công bố.",
+    "expected_context": "Điều khoản dịch vụ Shopee, mục 15.2: giá nên bao gồm toàn bộ thuế, phí và người bán không thu thêm khoản riêng. Nguồn: https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4"
+  },
+  {
+    "question": "Ai chịu trách nhiệm cung cấp hóa đơn cho người mua và thực hiện nghĩa vụ thuế đối với sản phẩm bán trên Shopee?",
+    "expected_answer": "Người bán chịu trách nhiệm cung cấp hóa đơn cho người mua theo pháp luật và chịu trách nhiệm thanh toán các loại thuế, phí hải quan cùng các khoản phí áp dụng cho sản phẩm bán ra. Shopee nêu rõ họ không cung cấp tư vấn pháp lý hoặc tư vấn thuế cho người bán.",
+    "expected_context": "Điều khoản dịch vụ Shopee, mục 15.5 và 15.6 về hóa đơn, thuế và phí của Người Bán. Nguồn: https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4"
+  },
+  {
+    "question": "Các chứng từ người bán cung cấp cho Shopee phải đáp ứng yêu cầu gì?",
+    "expected_answer": "Mọi chứng từ được yêu cầu phải được scan từ chứng từ gốc và không được làm giả, chỉnh sửa hoặc tẩy xóa.",
+    "expected_context": "Quy định về đăng bán sản phẩm trên Shopee, mục 1.c. Nguồn: https://help.shopee.vn/portal/4/article/77246"
+  },
+  {
+    "question": "Shopee có thể áp dụng những biện pháp nào khi người bán vi phạm quy định đăng bán sản phẩm?",
+    "expected_answer": "Tùy mức độ, Shopee có thể xóa, khóa hoặc tạm ẩn sản phẩm; giới hạn hoặc khóa tài khoản; yêu cầu bồi thường; cấn trừ số dư; khóa rút tiền; cung cấp thông tin cho cơ quan có thẩm quyền hoặc người bị ảnh hưởng; khởi kiện và áp dụng biện pháp khác theo chính sách có hiệu lực tại thời điểm vi phạm.",
+    "expected_context": "Quy định về đăng bán sản phẩm trên Shopee, phần E - Xử lý vi phạm. Nguồn: https://help.shopee.vn/portal/4/article/77246"
+  },
+  {
+    "question": "Theo Điều 36 Nghị định 52/2013/NĐ-CP trong corpus, đơn vị vận hành sàn thương mại điện tử có các trách nhiệm chính nào đối với người bán và khách hàng?",
+    "expected_answer": "Đơn vị vận hành phải đăng ký sàn và công khai thông tin; công bố, giám sát quy chế hoạt động; yêu cầu, kiểm tra, lưu trữ và cập nhật thông tin người bán; bảo đảm an toàn thông tin; xử lý kịp thời hành vi vi phạm; hỗ trợ cơ quan quản lý; công khai cơ chế giải quyết tranh chấp, cung cấp thông tin người bán và hỗ trợ khách hàng bảo vệ quyền lợi hợp pháp.",
+    "expected_context": "data/landing/legal/52-nd.pdf, Nghị định 52/2013/NĐ-CP, Điều 36. Văn bản gốc đã được sửa đổi bởi Nghị định 85/2021/NĐ-CP nên cần đối chiếu bản hiện hành khi tư vấn thực tế."
+  },
+  {
+    "question": "Theo Điều 37 Nghị định 52/2013/NĐ-CP trong corpus, người bán trên sàn phải cung cấp và bảo đảm thông tin như thế nào?",
+    "expected_answer": "Người bán phải cung cấp đầy đủ, chính xác thông tin đăng ký theo Điều 29; cung cấp đầy đủ thông tin hàng hóa, dịch vụ theo Điều 30 đến Điều 34; đồng thời bảo đảm thông tin hàng hóa, dịch vụ trên sàn là chính xác và trung thực.",
+    "expected_context": "data/landing/legal/52-nd.pdf, Nghị định 52/2013/NĐ-CP, khoản 1 đến khoản 3 Điều 37. Văn bản gốc đã được sửa đổi bởi Nghị định 85/2021/NĐ-CP."
+  },
+  {
+    "question": "Ngoài nghĩa vụ cung cấp thông tin, người bán trên sàn thương mại điện tử phải tuân thủ những nhóm pháp luật và nghĩa vụ tài chính nào theo Điều 37 Nghị định 52/2013/NĐ-CP trong corpus?",
+    "expected_answer": "Người bán phải tuân thủ pháp luật về thanh toán, quảng cáo, khuyến mại, bảo vệ quyền sở hữu trí tuệ, bảo vệ quyền lợi người tiêu dùng và các quy định liên quan; đồng thời thực hiện đầy đủ nghĩa vụ thuế.",
+    "expected_context": "data/landing/legal/52-nd.pdf, Nghị định 52/2013/NĐ-CP, khoản 6 và khoản 7 Điều 37. Văn bản gốc đã được sửa đổi bởi Nghị định 85/2021/NĐ-CP."
+  },
+  {
+    "question": "Theo Điều 38 Nghị định 52/2013/NĐ-CP trong corpus, quy chế hoạt động của sàn thương mại điện tử phải công khai ở đâu và phải bao quát những nội dung chính nào?",
+    "expected_answer": "Quy chế phải được thể hiện trên trang chủ của website và bao quát quyền, nghĩa vụ của đơn vị vận hành và người dùng; quy trình giao dịch; hoạt động rà soát, xử lý vi phạm; quyền, nghĩa vụ các bên; giới hạn trách nhiệm; an toàn thông tin; giải quyết khiếu nại, tranh chấp; bảo vệ dữ liệu cá nhân và quyền lợi người tiêu dùng; biện pháp xử lý vi phạm. Theo bản trong corpus, thay đổi các nội dung này phải được thông báo cho người dùng ít nhất 5 ngày trước khi áp dụng.",
+    "expected_context": "data/landing/legal/52-nd.pdf, Nghị định 52/2013/NĐ-CP, Điều 38. Văn bản gốc đã được sửa đổi bởi Nghị định 85/2021/NĐ-CP."
+  },
+  {
+    "question": "Công ty trách nhiệm hữu hạn và công ty cổ phần có thể có bao nhiêu người đại diện theo pháp luật, và Điều lệ công ty phải quy định gì?",
+    "expected_answer": "Hai loại công ty này có thể có một hoặc nhiều người đại diện theo pháp luật. Điều lệ phải quy định cụ thể số lượng, chức danh quản lý, quyền và nghĩa vụ của người đại diện; nếu có nhiều người thì phải phân định quyền, nghĩa vụ của từng người. Doanh nghiệp phải luôn bảo đảm có ít nhất một người đại diện theo pháp luật cư trú tại Việt Nam.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, Điều 12. Luật đã được sửa đổi, bổ sung; cần đối chiếu bản hợp nhất hiện hành khi tư vấn thực tế."
+  },
+  {
+    "question": "Tên tiếng Việt của doanh nghiệp được cấu thành theo thứ tự nào theo Luật Doanh nghiệp 2020 trong corpus?",
+    "expected_answer": "Tên tiếng Việt gồm hai thành tố theo thứ tự: loại hình doanh nghiệp trước, sau đó là tên riêng.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 1 Điều 37."
+  },
+  {
+    "question": "Luật Doanh nghiệp 2020 trong corpus quy định doanh nghiệp được quyết định và quản lý con dấu như thế nào?",
+    "expected_answer": "Doanh nghiệp được quyết định loại dấu, số lượng, hình thức và nội dung dấu của doanh nghiệp cùng đơn vị trực thuộc. Dấu có thể là dấu khắc hoặc chữ ký số; việc quản lý, lưu giữ dấu thực hiện theo Điều lệ hoặc quy chế của đơn vị có dấu.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, Điều 43."
+  },
+  {
+    "question": "Công ty trách nhiệm hữu hạn hai thành viên trở lên có giới hạn số thành viên và chế độ trách nhiệm tài sản ra sao?",
+    "expected_answer": "Công ty có từ 2 đến 50 thành viên là tổ chức hoặc cá nhân. Thành viên chịu trách nhiệm về nợ và nghĩa vụ tài sản khác trong phạm vi số vốn đã góp, trừ trường hợp đặc biệt tại khoản 4 Điều 47.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 1 Điều 46."
+  },
+  {
+    "question": "Thành viên công ty trách nhiệm hữu hạn hai thành viên trở lên phải hoàn tất phần vốn cam kết trong bao lâu?",
+    "expected_answer": "Thành viên phải góp đủ và đúng loại tài sản đã cam kết trong 90 ngày kể từ ngày công ty được cấp Giấy chứng nhận đăng ký doanh nghiệp; thời gian vận chuyển, nhập khẩu tài sản góp vốn và làm thủ tục hành chính để chuyển quyền sở hữu không tính vào thời hạn này.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 2 Điều 47."
+  },
+  {
+    "question": "Công ty trách nhiệm hữu hạn một thành viên do ai làm chủ và chủ sở hữu chịu trách nhiệm tài sản trong phạm vi nào?",
+    "expected_answer": "Công ty do một tổ chức hoặc một cá nhân làm chủ sở hữu. Chủ sở hữu chịu trách nhiệm về các khoản nợ và nghĩa vụ tài sản khác của công ty trong phạm vi vốn điều lệ của công ty.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 1 Điều 74."
+  },
+  {
+    "question": "Công ty trách nhiệm hữu hạn một thành viên có được phát hành cổ phần hoặc trái phiếu không?",
+    "expected_answer": "Công ty không được phát hành cổ phần, trừ trường hợp phát hành để chuyển đổi thành công ty cổ phần. Công ty được phát hành trái phiếu theo Luật Doanh nghiệp và pháp luật liên quan.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 3 và khoản 4 Điều 74."
+  },
+  {
+    "question": "Công ty cổ phần có tối thiểu bao nhiêu cổ đông, chế độ trách nhiệm ra sao và được huy động vốn bằng công cụ nào?",
+    "expected_answer": "Công ty cổ phần có tối thiểu 3 cổ đông và không hạn chế số lượng tối đa. Cổ đông chịu trách nhiệm trong phạm vi số vốn đã góp. Công ty có quyền phát hành cổ phần, trái phiếu và các loại chứng khoán khác của công ty.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, Điều 111."
+  },
+  {
+    "question": "Cổ đông công ty cổ phần phải thanh toán đủ số cổ phần đã đăng ký mua trong thời hạn nào?",
+    "expected_answer": "Cổ đông phải thanh toán đủ số cổ phần đã đăng ký mua trong 90 ngày kể từ ngày công ty được cấp Giấy chứng nhận đăng ký doanh nghiệp, trừ khi Điều lệ hoặc hợp đồng đăng ký mua cổ phần quy định thời hạn ngắn hơn; thời gian vận chuyển, nhập khẩu và làm thủ tục chuyển quyền sở hữu tài sản góp vốn không tính vào thời hạn này.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep1.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 1 Điều 113."
+  },
+  {
+    "question": "Chủ doanh nghiệp tư nhân chịu trách nhiệm tài sản như thế nào và doanh nghiệp tư nhân có được phát hành chứng khoán không?",
+    "expected_answer": "Chủ doanh nghiệp tư nhân là một cá nhân và phải chịu trách nhiệm bằng toàn bộ tài sản của mình đối với mọi hoạt động của doanh nghiệp. Doanh nghiệp tư nhân không được phát hành bất kỳ loại chứng khoán nào.",
+    "expected_context": "data/landing/legal/luatdoanhnghiep2.pdf, Luật Doanh nghiệp 59/2020/QH14, khoản 1 và khoản 2 Điều 188."
   }
 ]
