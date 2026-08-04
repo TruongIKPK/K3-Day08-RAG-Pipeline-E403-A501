@@ -52,6 +52,7 @@ def _get_collection():
 def _get_query_embedding(query: str) -> list[float]:
     """Tạo embedding cho query câu hỏi từ người dùng."""
     api_key = os.getenv("OPENAI_API_KEY")
+<<<<<<< HEAD
     if api_key and "text-embedding" in EMBEDDING_MODEL:
         try:
             from openai import OpenAI
@@ -65,6 +66,25 @@ def _get_query_embedding(query: str) -> list[float]:
     if model:
         return model.encode(query).tolist()
     return []
+=======
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
+            return res.data[0].embedding
+        except Exception as e:
+            print(f"⚠ Semantic search API warning: {e}")
+            return []
+    else:
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(EMBEDDING_MODEL)
+            return model.encode(query).tolist()
+        except Exception as e:
+            print(f"⚠ Local sentence-transformers warning: {e}")
+            return []
+>>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
 
 
 def semantic_search(query: str, top_k: int = 10) -> list[dict]:
@@ -87,10 +107,17 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
     if collection is None:
         return []
 
+<<<<<<< HEAD
     try:
         query_vector = _get_query_embedding(query)
         if not query_vector:
             return []
+=======
+    # Tạo vector cho query câu hỏi
+    query_vector = _get_query_embedding(query)
+    if not query_vector:
+        return []
+>>>>>>> 36cad2057c36ad41222d74ddd2afd90287d824be
 
         results = collection.query(
             query_embeddings=[query_vector],
