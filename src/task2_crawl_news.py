@@ -31,7 +31,11 @@ def setup_directory():
 
 # Danh sách URL bài viết cần crawl (tối thiểu 5 bài)
 ARTICLE_URLS = [
-    "https://help.shopee.vn/portal/4/article/107999"
+    "https://help.shopee.vn/portal/4/article/107999",
+    "https://help.shopee.vn/portal/4/article/77251?seo=1&utm_source=chatgpt.com",
+    "https://help.shopee.vn/portal/4/article/77245",
+    "https://help.shopee.vn/portal/4/article/107999",
+    "https://help.shopee.vn/portal/4/article/77243-%C4%90I%E1%BB%80U-KHO%E1%BA%A2N-D%E1%BB%8ACH-V%E1%BB%A4?utm_source=chatgpt.com",
 ]
 
 
