@@ -9,21 +9,16 @@ Yêu cầu:
     - Phải tương thích với embedding model và vector store ở Task 4
 """
 
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 import chromadb
-from sentence_transformers import SentenceTransformer
 
 from .task4_chunking_indexing import CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL
 
-_model: SentenceTransformer | None = None
+load_dotenv()
+
 _collection = None
-
-
-def _get_embedding_model() -> SentenceTransformer:
-    """Load (và cache) embedding model — cùng model dùng ở Task 4."""
-    global _model
-    if _model is None:
-        _model = SentenceTransformer(EMBEDDING_MODEL)
-    return _model
 
 
 def _get_collection():
@@ -33,6 +28,25 @@ def _get_collection():
         client = chromadb.PersistentClient(path=str(CHROMA_DIR))
         _collection = client.get_collection(name=COLLECTION_NAME)
     return _collection
+
+
+def _get_query_embedding(query: str) -> list[float]:
+    """Tạo embedding cho query câu hỏi từ người dùng."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        res = client.embeddings.create(input=[query], model=EMBEDDING_MODEL)
+        return res.data[0].embedding
+    else:
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(EMBEDDING_MODEL)
+            return model.encode(query).tolist()
+        except ImportError:
+            raise ValueError(
+                "Cần OPENAI_API_KEY trong .env hoặc cài đặt sentence-transformers để chạy semantic search!"
+            )
 
 
 def semantic_search(query: str, top_k: int = 10) -> list[dict]:
@@ -51,32 +65,31 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
         }
         Sorted by score descending.
     """
-    # Bước 1: Embed query bằng cùng model ở Task 4
-    model = _get_embedding_model()
-    query_vector = model.encode(query).tolist()
-
-    # Bước 2: Query vector store (cosine similarity)
     collection = _get_collection()
+
+    # Tạo vector cho query câu hỏi
+    query_vector = _get_query_embedding(query)
+
+    # Truy vấn vector store (cosine similarity)
     results = collection.query(
         query_embeddings=[query_vector],
         n_results=top_k,
         include=["documents", "metadatas", "distances"],
     )
 
-    # Bước 3: Return top_k results, sorted by score descending
     output = []
-    for doc, meta, dist in zip(
-        results["documents"][0], results["metadatas"][0], results["distances"][0]
-    ):
-        score = max(0.0, 1.0 - dist)  # cosine distance → similarity
-        output.append({"content": doc, "score": round(score, 4), "metadata": meta})
+    if results and results.get("documents") and results["documents"][0]:
+        for doc, meta, dist in zip(
+            results["documents"][0], results["metadatas"][0], results["distances"][0]
+        ):
+            score = max(0.0, 1.0 - dist)  # cosine distance → similarity
+            output.append({"content": doc, "score": round(score, 4), "metadata": meta})
 
     output.sort(key=lambda x: x["score"], reverse=True)
     return output[:top_k]
 
 
 if __name__ == "__main__":
-    # Test
-    results = semantic_search("what is the tuition fee", top_k=5)
+    results = semantic_search("quần áo Shopee Mall", top_k=5)
     for r in results:
         print(f"[{r['score']:.3f}] {r['content'][:100]}...")
